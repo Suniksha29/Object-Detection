@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Object Detector &amp; Counter</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-container">
+        <div class="brand">
+          <div class="brand-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="4" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+          </div>
+          <div>
+            <h1 class="brand-title">Object Detector &amp; Counter</h1>
+            <p class="brand-subtitle">Real-time deep learning detection powered by RT-DETR &amp; OWLv2</p>
+          </div>
+        </div>
+        <div class="header-meta">
+          <span class="badge badge-pulse" id="system-status">
+            <span class="status-dot"></span> <span id="status-text">Checking System...</span>
+          </span>
+          <span class="badge badge-ghost" id="device-badge">CPU</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Error Banner -->
+      <div id="error-banner" class="alert alert-danger hidden" role="alert">
+        <div class="alert-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="alert-content">
+          <div class="alert-title">Operation Failed</div>
+          <div class="alert-message" id="error-message">An error occurred.</div>
+        </div>
+        <button type="button" class="btn-close" id="btn-close-error" aria-label="Close error">&times;</button>
+      </div>
+
+      <div class="grid-container">
+        <!-- Input & Controls Column -->
+        <section class="card input-card">
+          <h2 class="card-title">Image Input</h2>
+          
+          <!-- Drag & Drop Zone -->
+          <div class="drop-zone" id="drop-zone">
+            <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp" class="visually-hidden" />
+            <div class="drop-zone-content" id="drop-zone-prompt">
+              <div class="drop-icon">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+              </div>
+              <p class="drop-primary">Drag &amp; drop your image here</p>
+              <p class="drop-secondary">or <span class="browse-link">browse files</span></p>
+              <p class="drop-hint">JPG, PNG, WEBP (Max 10 MB)</p>
+            </div>
+            <!-- File selected preview info inside dropzone -->
+            <div class="drop-zone-preview hidden" id="drop-zone-preview">
+              <img id="selected-thumbnail" alt="Selected preview" />
+              <div class="preview-info">
+                <span class="preview-filename" id="preview-filename">image.jpg</span>
+                <span class="preview-filesize" id="preview-filesize">0 KB</span>
+              </div>
+              <button type="button" class="btn-remove" id="btn-remove-file" title="Remove image">&times;</button>
+            </div>
+          </div>
+
+          <!-- Camera Capture Button -->
+          <div class="camera-actions">
+            <button type="button" class="btn btn-secondary btn-full" id="btn-open-camera">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+              Use Camera
+            </button>
+          </div>
+
+          <!-- Quick Samples Gallery -->
+          <div class="samples-section">
+            <span class="section-label">Try sample:</span>
+            <div class="samples-grid">
+              <button type="button" class="sample-btn" data-sample="street.jpg">
+                <img src="/static/sample_images/street.jpg" alt="Street sample" onerror="this.parentElement.style.display='none'" />
+                <span>Street</span>
+              </button>
+              <button type="button" class="sample-btn" data-sample="workspace.jpg">
+                <img src="/static/sample_images/workspace.jpg" alt="Workspace sample" onerror="this.parentElement.style.display='none'" />
+                <span>Desk</span>
+              </button>
+              <button type="button" class="sample-btn" data-sample="living_room.jpg">
+                <img src="/static/sample_images/living_room.jpg" alt="Living room sample" onerror="this.parentElement.style.display='none'" />
+                <span>Room</span>
+              </button>
+            </div>
+          </div>
+
+          <hr class="divider" />
+
+          <!-- Configuration Controls -->
+          <h2 class="card-title">Detection Settings</h2>
+          
+          <!-- Mode Tabs -->
+          <div class="tab-group" role="tablist">
+            <button type="button" class="tab active" id="tab-standard" role="tab" aria-selected="true">
+              Standard
+            </button>
+            <button type="button" class="tab" id="tab-openvocab" role="tab" aria-selected="false">
+              Custom &amp; Tiny Objects
+            </button>
+          </div>
+
+          <!-- Open-Vocab Prompt Input (Conditional) -->
+          <div class="form-group hidden" id="openvocab-container">
+            <label for="custom-labels" class="form-label">
+              Target Objects <span class="label-hint">(comma-separated)</span>
+            </label>
+            <input type="text" id="custom-labels" class="form-control" placeholder="e.g. mobile phone, charger, pen, laptop, book" value="mobile phone, laptop charger, pen, laptop, book, backpack" />
+            <div class="quick-tags">
+              <span class="tag-hint">Presets:</span>
+              <button type="button" class="tag-chip" id="preset-desk">+ Desk &amp; Tech</button>
+              <button type="button" class="tag-chip" id="preset-street">+ Street</button>
+            </div>
+          </div>
+
+          <!-- Confidence Slider -->
+          <div class="form-group">
+            <div class="slider-header">
+              <label for="confidence-slider" class="form-label">Confidence</label>
+              <span class="slider-value" id="confidence-val">0.35</span>
+            </div>
+            <input type="range" id="confidence-slider" min="0.05" max="0.95" step="0.05" value="0.35" class="range-slider" />
+          </div>
+
+          <!-- Collapsible Advanced Settings -->
+          <details class="advanced-panel" id="advanced-panel">
+            <summary class="advanced-toggle">
+              <span>Advanced Options</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </summary>
+            <div class="advanced-body">
+              <div class="form-check-inline">
+                <label class="checkbox-label" for="check-slicing">
+                  <input type="checkbox" id="check-slicing" checked />
+                  <span>High-Res Slicing (zoom for tiny objects)</span>
+                </label>
+              </div>
+
+              <div class="form-group" style="margin-top: 0.8rem; margin-bottom: 0;">
+                <div class="slider-header">
+                  <label for="nms-slider" class="form-label">NMS Overlap Threshold</label>
+                  <span class="slider-value" id="nms-val">0.50</span>
+                </div>
+                <input type="range" id="nms-slider" min="0.10" max="0.90" step="0.05" value="0.50" class="range-slider" />
+              </div>
+            </div>
+          </details>
+
+          <!-- Action Button -->
+          <button type="button" class="btn btn-primary btn-large btn-full" id="btn-detect" disabled>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            Detect &amp; Count Objects
+          </button>
+        </section>
+
+        <!-- Results Column -->
+        <section class="card results-card">
+          <div class="results-header">
+            <h2 class="card-title">Results &amp; Detections</h2>
+            <div class="results-actions">
+              <a id="btn-download" class="btn btn-sm btn-ghost hidden" download="annotated_detection.jpg" href="#">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download Image
+              </a>
+            </div>
+          </div>
+
+          <!-- Loading State -->
+          <div id="loading-spinner" class="loading-container hidden">
+            <div class="spinner"></div>
+            <p class="loading-title" id="loading-status">Analyzing Image...</p>
+            <p class="loading-sub">Running deep neural network inference</p>
+          </div>
+
+          <!-- Empty State -->
+          <div id="empty-state" class="empty-state">
+            <div class="empty-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+            </div>
+            <h3 class="empty-title">No Detections Yet</h3>
+            <p class="empty-sub">Upload an image or take a snapshot from your camera to detect and count real-world objects.</p>
+          </div>
+
+          <!-- Active Results Container -->
+          <div id="results-content" class="results-content hidden">
+            <!-- Summary Stats Cards -->
+            <div class="metrics-grid">
+              <div class="metric-card metric-primary">
+                <div class="metric-label">Total Objects</div>
+                <div class="metric-number" id="metric-total">0</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-label">Unique Classes</div>
+                <div class="metric-number" id="metric-classes">0</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-label">Inference Time</div>
+                <div class="metric-number text-accent" id="metric-time">0 ms</div>
+              </div>
+            </div>
+
+            <!-- Per-Class Count Badges -->
+            <div class="class-counts-container">
+              <h3 class="subsection-title">Object Counts by Class</h3>
+              <div class="class-chips-grid" id="class-chips-grid">
+                <!-- Dynamically generated chips -->
+              </div>
+            </div>
+
+            <!-- Annotated Image Display -->
+            <div class="image-viewer">
+              <div class="image-wrapper">
+                <img id="annotated-image" alt="Annotated detection output" />
+              </div>
+            </div>
+
+            <!-- Detailed Detections Table -->
+            <div class="table-section">
+              <h3 class="subsection-title">Detailed Detections List</h3>
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Class Label</th>
+                      <th>Confidence</th>
+                      <th>Bounding Box [x1, y1, x2, y2]</th>
+                    </tr>
+                  </thead>
+                  <tbody id="detections-tbody">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Camera Modal Dialog -->
+    <div id="camera-modal" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 class="modal-title">Live Camera Capture</h3>
+          <button type="button" class="btn-close" id="btn-close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="video-container">
+            <video id="camera-video" playsinline autoplay muted></video>
+            <canvas id="camera-canvas" class="hidden"></canvas>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" id="btn-switch-camera">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+            Switch Camera
+          </button>
+          <button type="button" class="btn btn-primary" id="btn-capture-photo">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+            Snap Photo
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>Object Detector &amp; Counter &bull; Apache-2.0 Licensed Transformers &bull; FastAPI + PyTorch Backend</p>
+    </footer>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
+
