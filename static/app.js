@@ -337,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const startTime = performance.now();
     loadingStatus.textContent = state.mode === 'standard'
-      ? 'Analyzing with RT-DETR...'
+      ? 'Analyzing with YOLOS...'
       : 'Querying OWLv2 Open-Vocabulary...';
 
     const formData = new FormData();

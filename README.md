@@ -2,14 +2,14 @@
 
 A production-ready web application that detects real-world objects in images, annotates them with labeled bounding boxes, and delivers both an aggregate count and an itemized per-class breakdown.
 
-Powered by **FastAPI** and pretrained **Apache-2.0** models from **Hugging Face Transformers** (**RT-DETR** for real-time COCO 80-class detection and **OWLv2** for zero-shot open-vocabulary detection).
+Powered by **FastAPI** and pretrained **Apache-2.0** models from **Hugging Face Transformers** (**YOLOS-tiny** for ultra-lightweight real-time COCO 80-class detection under 512MB RAM, **RT-DETR**, and **OWLv2** for zero-shot open-vocabulary detection).
 
 ---
 
 ## Features
 
-- **Dual Detection Engines**:
-  - **Standard Mode (RT-DETR)**: Pretrained Real-Time DEtection TRansformer (`PekingU/rtdetr_r50vd`, Apache-2.0) detecting 80 standard COCO classes.
+- **Multi-Engine Object Detection**:
+  - **Standard Mode (YOLOS-tiny / RT-DETR)**: Pretrained Vision Transformer (`hustvl/yolos-tiny`, Apache-2.0, ~28MB weights) detecting 80 COCO classes with minimal RAM (<80MB peak), allowing smooth deployment on memory-constrained free tiers (Render 512MB limit) without crashes.
   - **Open-Vocabulary Mode (OWLv2)**: Vision-language zero-shot detector (`google/owlv2-base-patch16-ensemble`, Apache-2.0) that detects arbitrary custom text prompts (e.g., *"helmet, laptop, coffee mug, dog, backpack"*).
 - **Intelligent Deduplication**: Pure PyTorch batched **Non-Maximum Suppression (NMS)** with configurable IoU and confidence thresholds so no object is double-counted.
 - **Robust Validation**: Rejects files larger than 10 MB (HTTP 413), unsupported MIME types or extensions (HTTP 400), empty images (HTTP 400), and corrupt image streams (HTTP 400).
@@ -41,7 +41,8 @@ Object detection task/
 │   ├── manager.py         # DetectorManager handling model lifecycles and dispatch
 │   ├── nms.py             # Pure PyTorch vectorized Non-Maximum Suppression
 │   ├── owlv2_detector.py  # OWLv2 Open-Vocabulary detector implementation
-│   └── rtdetr_detector.py # RT-DETR ResNet-50 COCO detector implementation
+│   ├── rtdetr_detector.py # RT-DETR ResNet-50 COCO detector implementation
+│   └── yolos_detector.py  # YOLOS-tiny ultra-lightweight COCO detector (<80MB RAM)
 ├── static/
 │   ├── app.js             # Client-side state, camera stream, API calls, rendering
 │   ├── index.html         # Responsive single-page application UI

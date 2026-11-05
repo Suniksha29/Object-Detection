@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=APP_NAME,
     version=VERSION,
-    description="Real-time object detection and counting web API using RT-DETR and OWLv2.",
+    description="Real-time object detection and counting web API using YOLOS, RT-DETR, and OWLv2.",
     lifespan=lifespan,
 )
 

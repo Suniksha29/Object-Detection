@@ -22,7 +22,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Pre-cache model weights into image layer so runtime inference is instant without network download
-RUN python -c "from transformers import RTDetrImageProcessor, RTDetrForObjectDetection; RTDetrImageProcessor.from_pretrained('PekingU/rtdetr_r50vd'); RTDetrForObjectDetection.from_pretrained('PekingU/rtdetr_r50vd', low_cpu_mem_usage=True)"
+RUN python -c "from transformers import YolosForObjectDetection; from transformers.models.yolos.image_processing_pil_yolos import YolosImageProcessorPil; YolosImageProcessorPil.from_pretrained('hustvl/yolos-tiny'); YolosForObjectDetection.from_pretrained('hustvl/yolos-tiny')"
 
 # Copy application source code
 COPY app/ ./app/

@@ -7,6 +7,7 @@ from PIL import Image
 import torch
 
 from models.base import BaseDetector, DetectionResult
+from models.yolos_detector import YolosDetector
 from models.rtdetr_detector import RTDetrDetector
 from models.owlv2_detector import Owlv2Detector
 
@@ -18,16 +19,17 @@ class DetectorManager:
 
     def __init__(self, device: Optional[str] = None):
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-        self.standard_detector = RTDetrDetector(device=self.device)
+        self.standard_detector = YolosDetector(device=self.device)
+        self.rtdetr_detector = RTDetrDetector(device=self.device)
         self.open_vocab_detector = Owlv2Detector(device=self.device)
         self._lock = threading.Lock()
 
     def load_models(self) -> None:
         """Load default detector model into memory at application startup.
 
-        Loads RT-DETR during startup to keep initial RAM consumption lightweight (~250MB),
+        Loads YOLOS-tiny during startup to keep initial RAM consumption ultra-lightweight (~75MB),
         allowing the service to run comfortably on memory-constrained cloud environments (e.g. Render 512MB).
-        OWLv2 is loaded lazily upon first open-vocabulary request.
+        RT-DETR and OWLv2 are loaded lazily upon explicit request.
         """
         with self._lock:
             logger.info("Initializing standard detector on device: %s", self.device)
@@ -41,7 +43,7 @@ class DetectorManager:
         nms_threshold: float = 0.5,
         custom_labels: Optional[str] = None,
         mode: str = "standard",
-        enable_slicing: bool = True,
+        enable_slicing: bool = False,
     ) -> List[DetectionResult]:
         """Dispatch detection request to appropriate model.
 
@@ -50,7 +52,7 @@ class DetectorManager:
             threshold: Confidence threshold (0.0 to 1.0).
             nms_threshold: IoU NMS threshold (0.0 to 1.0).
             custom_labels: Optional custom label string (e.g. 'helmet, laptop').
-            mode: Detection mode ('standard' or 'open_vocab').
+            mode: Detection mode ('standard', 'open_vocab', or 'rtdetr').
             enable_slicing: Enable multi-scale tiled slicing for tiny objects.
 
         Returns:
@@ -73,7 +75,21 @@ class DetectorManager:
                 enable_slicing=enable_slicing,
             )
 
-        # Default standard mode uses RT-DETR
+        # Explicit RT-DETR mode
+        if mode.lower() in ("rtdetr", "rt-detr"):
+            if not self.rtdetr_detector.is_loaded:
+                with self._lock:
+                    if not self.rtdetr_detector.is_loaded:
+                        logger.info("Lazy-loading RT-DETR detector on device: %s...", self.device)
+                        self.rtdetr_detector.load()
+            return self.rtdetr_detector.detect(
+                image=image,
+                threshold=threshold,
+                nms_threshold=nms_threshold,
+                enable_slicing=enable_slicing,
+            )
+
+        # Default standard mode uses ultra-lightweight YOLOS-tiny (<80MB RAM)
         if not self.standard_detector.is_loaded:
             with self._lock:
                 if not self.standard_detector.is_loaded:
@@ -92,6 +108,8 @@ class DetectorManager:
             "device": str(self.device),
             "standard_model": self.standard_detector.model_id,
             "standard_loaded": str(self.standard_detector.is_loaded),
+            "rtdetr_model": self.rtdetr_detector.model_id,
+            "rtdetr_loaded": str(self.rtdetr_detector.is_loaded),
             "open_vocab_model": self.open_vocab_detector.model_id,
             "open_vocab_loaded": str(self.open_vocab_detector.is_loaded),
         }
