@@ -131,6 +131,47 @@ Access the UI at `http://localhost:8000`.
 
 ---
 
+## Cloud Deployment Guide
+
+This project is pre-configured for one-click deployment across major cloud providers:
+
+### 1. Deploy on Render
+1. Go to [render.com](https://render.com) and create an account.
+2. Click **New +** &rarr; **Web Service** and connect your GitHub repository (`Suniksha29/Object-Detection`).
+3. Render automatically detects the included `render.yaml` or `Dockerfile`:
+   - **Runtime**: `Docker` or `Python 3`
+   - **Build Command**: `pip install --upgrade pip && pip install -r requirements.txt`
+   - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+4. Click **Deploy Web Service**.
+
+### 2. Deploy on Railway
+1. Go to [railway.app](https://railway.app) and sign in with GitHub.
+2. Click **New Project** &rarr; **Deploy from GitHub repo** &rarr; select `Suniksha29/Object-Detection`.
+3. Railway automatically detects `Dockerfile` and the included `Procfile`, binds to `$PORT`, and provisions a live HTTPS URL.
+
+### 3. Deploy on Hugging Face Spaces (Free CPU / GPU)
+1. Go to [huggingface.co/spaces](https://huggingface.co/spaces) and click **Create new Space**.
+2. Select **Docker** as the Space SDK and choose **Blank**.
+3. In your Space settings, connect your GitHub repository or mirror the code to HF Spaces.
+4. HF Spaces automatically builds the `Dockerfile` and hosts the interactive app.
+
+### 4. Deploy on Google Cloud Run
+```bash
+# Build and submit to Google Artifact Registry
+gcloud builds submit --tag gcr.io/<PROJECT_ID>/object-detector
+
+# Deploy serverless container to Cloud Run
+gcloud run deploy object-detector \
+  --image gcr.io/<PROJECT_ID>/object-detector \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --memory 2Gi \
+  --cpu 2
+```
+
+---
+
 ## API Reference
 
 ### 1. Health Check

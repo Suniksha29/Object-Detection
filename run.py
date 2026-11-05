@@ -1,13 +1,17 @@
 """CLI entrypoint to launch the Object Detector & Counter web server."""
 
 import argparse
+import os
 import uvicorn
 
 
 def main():
+    default_host = os.environ.get("HOST", "0.0.0.0" if os.environ.get("PORT") else "127.0.0.1")
+    default_port = int(os.environ.get("PORT", 8000))
+
     parser = argparse.ArgumentParser(description="Run Object Detector & Counter Server")
-    parser.add_argument("--host", type=str, default="127.0.0.1", help="Host interface to bind to (default: 127.0.0.1)")
-    parser.add_argument("--port", type=int, default=8000, help="Port to listen on (default: 8000)")
+    parser.add_argument("--host", type=str, default=default_host, help=f"Host interface to bind to (default: {default_host})")
+    parser.add_argument("--port", type=int, default=default_port, help=f"Port to listen on (default: {default_port})")
     parser.add_argument("--reload", action="store_true", help="Enable automatic reload on code changes")
     args = parser.parse_args()
 
