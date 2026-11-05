@@ -357,12 +357,22 @@ document.addEventListener('DOMContentLoaded', () => {
         body: formData,
       });
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        let detailMsg = `Server error (${response.status})`;
+        try {
+          const parsed = JSON.parse(errorText);
+          detailMsg = parsed.detail || detailMsg;
+        } catch {
+          if (response.status === 502 || response.status === 504) {
+            detailMsg = 'Server gateway timed out. Please try again with standard mode or without slicing on free tier.';
+          }
+        }
+        throw new Error(detailMsg);
+      }
+
       const data = await response.json();
       const elapsedMs = Math.round(performance.now() - startTime);
-
-      if (!response.ok) {
-        throw new Error(data.detail || `Server returned error status ${response.status}`);
-      }
 
       displayResults(data, elapsedMs);
     } catch (err) {

@@ -21,6 +21,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
+# Pre-cache model weights into image layer so runtime inference is instant without network download
+RUN python -c "from transformers import RTDetrImageProcessor, RTDetrForObjectDetection; RTDetrImageProcessor.from_pretrained('PekingU/rtdetr_r50vd'); RTDetrForObjectDetection.from_pretrained('PekingU/rtdetr_r50vd', low_cpu_mem_usage=True)"
+
 # Copy application source code
 COPY app/ ./app/
 COPY models/ ./models/
