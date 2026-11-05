@@ -52,14 +52,20 @@ class RTDetrDetector(BaseDetector):
             logger.info("RT-DETR already loaded.")
             return
 
+        import gc
+
         logger.info("Loading RT-DETR processor from %s...", self.model_id)
         self.processor = RTDetrImageProcessor.from_pretrained(self.model_id)
 
-        logger.info("Loading RT-DETR model weights onto %s...", self.device)
-        self.model = RTDetrForObjectDetection.from_pretrained(self.model_id)
+        logger.info("Loading RT-DETR model weights onto %s (low_cpu_mem_usage=True)...", self.device)
+        self.model = RTDetrForObjectDetection.from_pretrained(
+            self.model_id,
+            low_cpu_mem_usage=True,
+        )
         self.model.to(self.device)
         self.model.eval()
 
+        gc.collect()
         self.is_loaded = True
         logger.info("RT-DETR loaded successfully.")
 

@@ -22,16 +22,16 @@ logger = logging.getLogger("app.main")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan manager: preloads models once at startup."""
+    """Application lifespan manager: binds port immediately and loads models in background."""
+    import asyncio
+
     logger.info("Initializing Object Detector & Counter...")
     manager = DetectorManager()
-    try:
-        manager.load_models()
-        app.state.detector_manager = manager
-        logger.info("Application ready to accept inference requests.")
-    except Exception as exc:
-        logger.exception("Failed to initialize detector models: %s", exc)
-        raise exc
+    app.state.detector_manager = manager
+
+    # Schedule model preloading in background thread so Uvicorn binds port instantly
+    loop = asyncio.get_running_loop()
+    loop.run_in_executor(None, manager.load_models)
 
     yield
 

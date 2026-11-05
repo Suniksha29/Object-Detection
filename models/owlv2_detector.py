@@ -52,14 +52,20 @@ class Owlv2Detector(BaseDetector):
             logger.info("OWLv2 already loaded.")
             return
 
+        import gc
+
         logger.info("Loading OWLv2 processor from %s...", self.model_id)
         self.processor = Owlv2Processor.from_pretrained(self.model_id)
 
-        logger.info("Loading OWLv2 model weights onto %s...", self.device)
-        self.model = Owlv2ForObjectDetection.from_pretrained(self.model_id)
+        logger.info("Loading OWLv2 model weights onto %s (low_cpu_mem_usage=True)...", self.device)
+        self.model = Owlv2ForObjectDetection.from_pretrained(
+            self.model_id,
+            low_cpu_mem_usage=True,
+        )
         self.model.to(self.device)
         self.model.eval()
 
+        gc.collect()
         self.is_loaded = True
         logger.info("OWLv2 loaded successfully.")
 

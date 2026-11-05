@@ -1,6 +1,7 @@
 """Detector Manager for managing model lifecycles and inference dispatch."""
 
 import logging
+import threading
 from typing import Dict, List, Optional
 from PIL import Image
 import torch
@@ -19,14 +20,19 @@ class DetectorManager:
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.standard_detector = RTDetrDetector(device=self.device)
         self.open_vocab_detector = Owlv2Detector(device=self.device)
+        self._lock = threading.Lock()
 
     def load_models(self) -> None:
-        """Load detector models into memory at application startup."""
-        logger.info("Initializing detectors on device: %s", self.device)
-        self.standard_detector.load()
-        # Pre-load OWLv2 for fast zero-shot inference
-        self.open_vocab_detector.load()
-        logger.info("All detector models loaded successfully.")
+        """Load default detector model into memory at application startup.
+
+        Loads RT-DETR during startup to keep initial RAM consumption lightweight (~250MB),
+        allowing the service to run comfortably on memory-constrained cloud environments (e.g. Render 512MB).
+        OWLv2 is loaded lazily upon first open-vocabulary request.
+        """
+        with self._lock:
+            logger.info("Initializing standard detector on device: %s", self.device)
+            self.standard_detector.load()
+            logger.info("Standard detector model loaded successfully.")
 
     def detect(
         self,
@@ -52,6 +58,12 @@ class DetectorManager:
         """
         # If custom labels are provided or mode is open_vocab, use OWLv2
         if (custom_labels and custom_labels.strip()) or mode.lower() in ("open_vocab", "open_vocabulary", "owlv2"):
+            if not self.open_vocab_detector.is_loaded:
+                with self._lock:
+                    if not self.open_vocab_detector.is_loaded:
+                        logger.info("Lazy-loading OWLv2 detector on device: %s...", self.device)
+                        self.open_vocab_detector.load()
+
             logger.info("Using OWLv2 open-vocabulary detector with custom labels: %s", custom_labels)
             return self.open_vocab_detector.detect(
                 image=image,
@@ -62,6 +74,11 @@ class DetectorManager:
             )
 
         # Default standard mode uses RT-DETR
+        if not self.standard_detector.is_loaded:
+            with self._lock:
+                if not self.standard_detector.is_loaded:
+                    self.standard_detector.load()
+
         return self.standard_detector.detect(
             image=image,
             threshold=threshold,

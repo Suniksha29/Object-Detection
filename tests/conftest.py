@@ -13,6 +13,9 @@ from app.main import app
 def client() -> Generator[TestClient, None, None]:
     """Provide a session-scoped TestClient with initialized lifespan models."""
     with TestClient(app) as test_client:
+        manager = test_client.app.state.detector_manager
+        if not manager.standard_detector.is_loaded:
+            manager.load_models()
         yield test_client
 
 
