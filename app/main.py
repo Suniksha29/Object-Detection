@@ -22,16 +22,11 @@ logger = logging.getLogger("app.main")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan manager: binds port immediately and loads models in background."""
-    import asyncio
-
+    """Application lifespan manager: starts server instantly with on-demand model loading."""
     logger.info("Initializing Object Detector & Counter...")
     manager = DetectorManager()
     app.state.detector_manager = manager
-
-    # Schedule model preloading in background thread so Uvicorn binds port instantly
-    loop = asyncio.get_running_loop()
-    loop.run_in_executor(None, manager.load_models)
+    logger.info("Server ready to accept requests. Model weights load on-demand.")
 
     yield
 

@@ -27,12 +27,9 @@ COPY models/ ./models/
 COPY static/ ./static/
 COPY run.py .
 
-# Expose server port
+# Expose server ports (8000 standard, 10000 Render default)
 EXPOSE 8000
+EXPOSE 10000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
-
-# Launch uvicorn web server dynamically binding to $PORT (compatible with Render, Railway, Cloud Run, HF Spaces)
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Launch server directly via Python CLI entrypoint (respects $PORT and $HOST)
+CMD ["python", "run.py"]
